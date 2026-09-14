@@ -141,18 +141,14 @@ export default function Login() {
         || (!identifier.includes('@') ? identifier : '');
 
       setFpEmail(targetEmail);
-
-      // 2. Choose the right identifier for the OTP API call.
-      // For SMS/WhatsApp mode: must pass the user's phone, even if they typed their email.
-      // For Email mode: must pass the user's email.
-      // /User/ForgotPassword is AllowAnonymous — safe for unauthenticated users.
-      let identifierForOtp;
-      if (fpMethod === 'email') {
-        identifierForOtp = targetEmail || identifier;
-      } else {
-        // SMS or WhatsApp — send to the phone number on record
-        identifierForOtp = targetPhone || identifier;
+      if (targetPhone) {
+        setFpPhone(targetPhone);
       }
+
+      // Choose the right identifier for the OTP API call (always phone-based OTP).
+      // For SMS or WhatsApp mode — send to the phone number on record
+      // /User/ForgotPassword is AllowAnonymous — safe for unauthenticated users.
+      const identifierForOtp = targetPhone || identifier;
 
       const res = await api.forgotPassword(identifierForOtp, fpMethod);
       const data = res.data;
@@ -201,8 +197,8 @@ export default function Login() {
         return;
       }
       // If fpOtpValue is empty (backend didn't return it), still proceed
-      // (can happen if OTP is sent via real SMS/email without returning value)
-      const identifierToVerify = fpMethod === 'email' && fpEmail ? fpEmail : fpPhone.trim();
+      // (can happen if OTP is sent via real SMS without returning value)
+      const identifierToVerify = fpPhone.trim();
       const res = await api.verifyResetCode(identifierToVerify, fpCode);
       const data = res.data;
       if (data.StatusCode === 200) {
@@ -233,7 +229,7 @@ export default function Login() {
     }
     setFpLoading(true); setFpMsg('');
     try {
-      const identifierToReset = fpMethod === 'email' && fpEmail ? fpEmail : fpPhone.trim();
+      const identifierToReset = fpPhone.trim();
       const res = await api.resetPassword(identifierToReset, fpCode, fpNew);
       const data = res.data;
       if (data.StatusCode === 200) {
@@ -390,19 +386,10 @@ export default function Login() {
                       <span className="text-sm">📱 SMS</span>
                     </label>
                     <label className="flex items-center gap-2 cursor-pointer">
-                      <input type="radio" name="delivery" value="email" checked={fpMethod === 'email'} onChange={() => setFpMethod('email')} />
-                      <span className="text-sm">📧 Email</span>
-                    </label>
-                    <label className="flex items-center gap-2 cursor-pointer">
                       <input type="radio" name="delivery" value="whatsapp" checked={fpMethod === 'whatsapp'} onChange={() => setFpMethod('whatsapp')} />
                       <span className="text-sm">💬 WhatsApp</span>
                     </label>
                   </div>
-                  {fpMethod === 'email' && (
-                    <p className="text-xs mt-2 italic" style={{ color: 'var(--gym-muted)' }}>
-                      ℹ️ OTP will be sent to the email address registered with this user.
-                    </p>
-                  )}
                 </div>
 
                 {fpMsg && <p className="text-sm" style={{ color: msgColor(fpMsgType) }}>{fpMsg}</p>}
@@ -419,7 +406,7 @@ export default function Login() {
             {fpStep === 2 && (
               <div className="space-y-4">
                 <p className="text-sm" style={{ color: 'var(--gym-muted)' }}>
-                  Enter the OTP sent to the {fpMethod === 'email' ? 'email registered with' : fpMethod === 'whatsapp' ? 'WhatsApp number' : 'phone'} <strong style={{ color: 'var(--gym-text)' }}>{fpPhone}</strong>
+                  Enter the OTP sent to {fpMethod === 'whatsapp' ? 'your WhatsApp number' : 'your phone via SMS'} <strong style={{ color: 'var(--gym-text)' }}>{fpPhone}</strong>
                 </p>
                 <div>
                   <label className="gym-label">OTP Code</label>
