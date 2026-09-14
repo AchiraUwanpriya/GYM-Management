@@ -350,6 +350,24 @@ export default function AddUser() {
         className="relative w-full max-w-md rounded-2xl p-8 mx-4 my-8"
         style={{ background: 'rgba(18,18,18,0.92)', border: '1px solid var(--gym-border)', boxShadow: '0 24px 80px rgba(0,0,0,0.55)', backdropFilter: 'blur(18px)' }}
       >
+        {/* Close icon on card */}
+        <button
+          type="button"
+          onClick={() => navigate('/')}
+          title="Close"
+          aria-label="Close"
+          className="absolute top-4 right-4 flex items-center justify-center w-8 h-8 rounded-full transition-all"
+          style={{
+            background: 'var(--gym-surface2)',
+            border: '1px solid var(--gym-border)',
+            color: 'var(--gym-muted)',
+            cursor: 'pointer',
+          }}
+          onMouseEnter={(e) => { e.currentTarget.style.color = 'var(--gym-accent)'; e.currentTarget.style.borderColor = 'var(--gym-accent)'; }}
+          onMouseLeave={(e) => { e.currentTarget.style.color = 'var(--gym-muted)'; e.currentTarget.style.borderColor = 'var(--gym-border)'; }}
+        >
+          <CloseIcon width={14} height={14} />
+        </button>
         <div className="text-center mb-7">
           <div className="inline-flex items-center justify-center gap-3 mb-4">
             <div style={{ color: 'var(--gym-accent)' }}>
@@ -675,6 +693,15 @@ function EyeOffIcon() {
     <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" width="15" height="15">
       <path d="M17.94 17.94A10.07 10.07 0 0112 20c-7 0-11-8-11-8a18.45 18.45 0 015.06-5.94M9.9 4.24A9.12 9.12 0 0112 4c7 0 11 8 11 8a18.5 18.5 0 01-2.16 3.19m-6.72-1.07a3 3 0 11-4.24-4.24" />
       <line x1="1" y1="1" x2="23" y2="23" />
+    </svg>
+  );
+}
+
+function CloseIcon({ width = 16, height = 16 }) {
+  return (
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round" width={width} height={height}>
+      <line x1="18" y1="6" x2="6" y2="18" />
+      <line x1="6" y1="6" x2="18" y2="18" />
     </svg>
   );
 }
