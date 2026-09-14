@@ -22,7 +22,7 @@ export default function Login() {
   const [fpStep,    setFpStep]    = useState(0);
   const [fpPhone,   setFpPhone]   = useState('');          // phone collected inside the modal
   const [fpEmail,   setFpEmail]   = useState('');          // email retrieved from db
-  const [fpMethod,  setFpMethod]  = useState('sms');       // 'sms' | 'email' | 'whatsapp'
+  const [fpMethod,  setFpMethod]  = useState('sms');       // 'sms' | 'whatsapp'
   const [fpCode,    setFpCode]    = useState('');
   const [fpOtpValue, setFpOtpValue] = useState(''); // real OTP returned by backend; backend never re-checks it, so we must compare it here
   const [fpNew,     setFpNew]     = useState('');
@@ -141,16 +141,16 @@ export default function Login() {
         || (!identifier.includes('@') ? identifier : '');
 
       setFpEmail(targetEmail);
-      if (targetPhone) {
-        setFpPhone(targetPhone);
+      if (!targetPhone) {
+        setFpMsg('No registered phone number found for this account. Please contact gym administration.');
+        setFpMsgType('error');
+        setFpLoading(false);
+        return;
       }
+      setFpPhone(targetPhone);
 
-      // Choose the right identifier for the OTP API call (always phone-based OTP).
-      // For SMS or WhatsApp mode — send to the phone number on record
-      // /User/ForgotPassword is AllowAnonymous — safe for unauthenticated users.
-      const identifierForOtp = targetPhone || identifier;
-
-      const res = await api.forgotPassword(identifierForOtp, fpMethod);
+      // OTP is always phone-based (SMS or WhatsApp)
+      const res = await api.forgotPassword(targetPhone, fpMethod);
       const data = res.data;
 
       if (data.StatusCode === 200) {
@@ -372,10 +372,13 @@ export default function Login() {
             {fpStep === 1 && (
               <div className="space-y-4">
                 <p className="text-sm" style={{ color: 'var(--gym-muted)' }}>
-                  We'll send an OTP to <strong style={{ color: 'var(--gym-text)' }}>{fpPhone}</strong> to verify your identity.
+                  {fpPhone.includes('@')
+                    ? "We'll send an OTP to your registered phone number to verify your identity."
+                    : <>We'll send an OTP to <strong style={{ color: 'var(--gym-text)' }}>{fpPhone}</strong> to verify your identity.</>
+                  }
                 </p>
                 <p className="text-xs italic" style={{ color: 'var(--gym-muted)' }}>
-                  🔒 The OTP is sent only to the contact registered in our database.
+                  🔒 The OTP is sent only to the phone number registered in our database.
                 </p>
 
                 <div>

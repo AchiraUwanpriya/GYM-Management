@@ -50,14 +50,6 @@ export default function AddUser() {
   const [otpLoading, setOtpLoading] = useState(false);
   const [otpMsg, setOtpMsg] = useState('');
   const [otpMsgType, setOtpMsgType] = useState('info');
-
-  const [emailOtpStep, setEmailOtpStep] = useState(0);
-  const [emailOtpCode, setEmailOtpCode] = useState('');
-  const [sentEmailOtp, setSentEmailOtp] = useState('');
-  const [emailOtpLoading, setEmailOtpLoading] = useState(false);
-  const [emailOtpMsg, setEmailOtpMsg] = useState('');
-  const [emailOtpMsgType, setEmailOtpMsgType] = useState('info');
-
   const handleChange = (e) => {
     const { name, value } = e.target;
     setError('');
@@ -65,10 +57,6 @@ export default function AddUser() {
     // ── Real-time Gmail validation ─────────────────────────
     if (name === 'email') {
       setFieldErrors((prev) => ({ ...prev, email: getEmailError(value) }));
-      setEmailOtpStep(0);
-      setEmailOtpCode('');
-      setSentEmailOtp('');
-      setEmailOtpMsg('');
     } else {
       setFieldErrors((prev) => ({ ...prev, [name]: '' }));
     }
@@ -171,14 +159,38 @@ export default function AddUser() {
     setOtpLoading(true);
     setOtpMsg('');
     try {
+      // 1. Check if phone is already registered before sending OTP
+      try {
+        const checkRes = await api.checkUserExists(phone);
+        const userList = checkRes?.data?.ResultSet;
+        const exists = Array.isArray(userList)
+          ? userList.length > 0
+          : !!(userList && typeof userList === 'object' && Object.keys(userList).length > 0);
+        if (checkRes?.data?.StatusCode === 200 && exists) {
+          setFieldErrors((prev) => ({ ...prev, phone: 'This phone number is already registered.' }));
+          setOtpMsg('This phone number is already registered.');
+          setOtpMsgType('error');
+          setOtpLoading(false);
+          return;
+        }
+      } catch {
+        // proceed if check fails
+      }
+
       const res = await api.sendPhoneOtp(phone);
       const data = res.data;
       if (data?.StatusCode === 200) {
+        const receivedOtp = String(data.ResultSet?.otp || data.ResultSet?.OTP || data.otp || '').trim();
+        if (receivedOtp) setSentOtp(receivedOtp);
         setOtpStep(1);
         setOtpMsg('OTP sent to your phone via SMS.');
         setOtpMsgType('success');
       } else {
-        setOtpMsg(data?.Result || 'Could not send OTP.');
+        const err = data?.Result || 'Could not send OTP.';
+        if (err.toLowerCase().includes('already registered')) {
+          setFieldErrors((prev) => ({ ...prev, phone: err }));
+        }
+        setOtpMsg(err);
         setOtpMsgType('error');
       }
     } catch {
@@ -210,61 +222,6 @@ export default function AddUser() {
     setOtpLoading(false);
   };
 
-  const sendEmailOtp = async () => {
-    const email = form.email.trim();
-    if (!email) {
-      setError('Enter your email first.');
-      return;
-    }
-    if (getEmailError(email)) {
-      setError(getEmailError(email));
-      return;
-    }
-
-    setEmailOtpLoading(true);
-    setEmailOtpMsg('');
-    try {
-      const res = await api.sendEmailOtp(email);
-      const data = res.data;
-      if (data?.StatusCode === 200) {
-        const receivedOtp = String(data.ResultSet?.otp || data.ResultSet?.OTP || data.otp || '').trim();
-        setSentEmailOtp(receivedOtp);
-        setEmailOtpStep(1);
-        setEmailOtpMsg('OTP sent to your email.');
-        setEmailOtpMsgType('success');
-      } else {
-        setEmailOtpMsg(data?.Result || 'Could not send OTP.');
-        setEmailOtpMsgType('error');
-      }
-    } catch {
-      setEmailOtpMsg('Could not send OTP.');
-      setEmailOtpMsgType('error');
-    }
-    setEmailOtpLoading(false);
-  };
-
-  const verifyEmailOtp = async () => {
-    if (!emailOtpCode || emailOtpCode.length < 4) return;
-
-    setEmailOtpLoading(true);
-    setEmailOtpMsg('');
-    try {
-      if (sentEmailOtp && String(emailOtpCode).trim() !== String(sentEmailOtp).trim()) {
-        setEmailOtpMsg('Invalid or expired OTP. Please check the code and try again.');
-        setEmailOtpMsgType('error');
-        setEmailOtpLoading(false);
-        return;
-      }
-      setEmailOtpStep(2);
-      setEmailOtpMsg('Email verified successfully.');
-      setEmailOtpMsgType('success');
-    } catch {
-      setEmailOtpMsg('Could not verify.');
-      setEmailOtpMsgType('error');
-    }
-    setEmailOtpLoading(false);
-  };
-
   const validate = () => {
     if (!form.firstName.trim()) return 'First name is required.';
     if (!form.lastName.trim()) return 'Last name is required.';
@@ -275,7 +232,6 @@ export default function AddUser() {
 
     if (!form.email.trim()) return 'Email is required.';
     if (!GMAIL_REGEX.test(form.email.trim())) return 'Only @gmail.com addresses are accepted.';
-    if (emailOtpStep !== 2) return 'Please verify your email address with OTP first.';
     if (!form.gender) return 'Please select your gender.';
     if (!form.phone.trim()) return 'Phone number is required for OTP verification.';
     if (!isValidPhone(form.phone)) return PHONE_ERROR_MESSAGE;
@@ -349,6 +305,11 @@ export default function AddUser() {
           setFieldErrors((prev) => ({ ...prev, email: errorMsg }));
         } else if (errorMsg.toLowerCase().includes('phone number is already registered') || errorMsg.toLowerCase().includes('valid phone number')) {
           setFieldErrors((prev) => ({ ...prev, phone: errorMsg }));
+          setOtpStep(0);
+          setOtpCode('');
+          setSentOtp('');
+          setOtpMsg(errorMsg);
+          setOtpMsgType('error');
         } else {
           setError(errorMsg);
         }
@@ -502,53 +463,26 @@ export default function AddUser() {
             </div>
 
             <div>
-              <label className="gym-label">
-                Email Address *
-                {emailOtpStep === 2 && <span className="ml-2 text-xs font-bold" style={{ color: 'var(--gym-success)' }}>Verified</span>}
-              </label>
-              <div className="flex gap-2">
-                <div className="relative flex-1">
-                  <span className="absolute left-3 top-1/2 -translate-y-1/2 pointer-events-none" style={{ color: 'var(--gym-muted)' }}>
-                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" width="15" height="15">
-                      <path d="M4 4h16c1.1 0 2 .9 2 2v12c0 1.1-.9 2-2 2H4c-1.1 0-2-.9-2-2V6c0-1.1.9-2 2-2z" />
-                      <polyline points="22,6 12,13 2,6" />
-                    </svg>
-                  </span>
-                  <input
-                    type="email"
-                    name="email"
-                    value={form.email}
-                    onChange={handleChange}
-                    className="gym-input pl-9"
-                    placeholder="yourname@gmail.com"
-                    required
-                    autoComplete="email"
-                    disabled={emailOtpStep === 2}
-                    style={fieldErrors.email ? { borderColor: 'var(--gym-accent2)' } : (emailOtpStep === 2 ? { opacity: 0.7 } : {})}
-                  />
-                </div>
-                {emailOtpStep !== 2 && (
-                  <button type="button" className="btn btn-secondary text-sm flex-shrink-0" onClick={emailOtpStep === 0 ? sendEmailOtp : verifyEmailOtp} disabled={emailOtpLoading || (emailOtpStep === 0 && !form.email)}>
-                    {emailOtpLoading ? '...' : emailOtpStep === 0 ? 'Send OTP' : 'Verify'}
-                  </button>
-                )}
+              <label className="gym-label">Email Address *</label>
+              <div className="relative">
+                <span className="absolute left-3 top-1/2 -translate-y-1/2 pointer-events-none" style={{ color: 'var(--gym-muted)' }}>
+                  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" width="15" height="15">
+                    <path d="M4 4h16c1.1 0 2 .9 2 2v12c0 1.1-.9 2-2 2H4c-1.1 0-2-.9-2-2V6c0-1.1.9-2 2-2z" />
+                    <polyline points="22,6 12,13 2,6" />
+                  </svg>
+                </span>
+                <input
+                  type="email"
+                  name="email"
+                  value={form.email}
+                  onChange={handleChange}
+                  className="gym-input pl-9"
+                  placeholder="yourname@gmail.com"
+                  required
+                  autoComplete="email"
+                  style={fieldErrors.email ? { borderColor: 'var(--gym-accent2)' } : {}}
+                />
               </div>
-              {emailOtpStep === 1 && (
-                <div className="mt-2 flex gap-2 items-center">
-                  <input
-                    className="gym-input text-center tracking-[0.4em] text-lg flex-1"
-                    placeholder="000000"
-                    maxLength={6}
-                    inputMode="numeric"
-                    value={emailOtpCode}
-                    onChange={(e) => setEmailOtpCode(e.target.value.replace(/\D/g, '').slice(0, 6))}
-                  />
-                  <button type="button" className="btn btn-primary text-sm flex-shrink-0" onClick={verifyEmailOtp} disabled={emailOtpLoading || emailOtpCode.length < 4}>
-                    {emailOtpLoading ? '...' : 'Confirm'}
-                  </button>
-                </div>
-              )}
-              {emailOtpMsg && <p className="text-xs mt-1" style={{ color: msgColor(emailOtpMsgType) }}>{emailOtpMsg}</p>}
               {fieldErrors.email
                 ? <p className="text-xs mt-1" style={{ color: 'var(--gym-accent2)' }}>⚠ {fieldErrors.email}</p>
                 : form.email && GMAIL_REGEX.test(form.email.trim())
@@ -560,10 +494,28 @@ export default function AddUser() {
             </div>
 
             <div>
-              <label className="gym-label">
-                Phone Number *
-                {otpStep === 2 && <span className="ml-2 text-xs font-bold" style={{ color: 'var(--gym-success)' }}>Verified</span>}
-              </label>
+              <div className="flex items-center justify-between mb-1">
+                <label className="gym-label" style={{ margin: 0 }}>
+                  Phone Number *
+                  {otpStep === 2 && <span className="ml-2 text-xs font-bold" style={{ color: 'var(--gym-success)' }}>✓ Verified</span>}
+                </label>
+                {otpStep === 2 && (
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setOtpStep(0);
+                      setOtpCode('');
+                      setSentOtp('');
+                      setOtpMsg('');
+                      setFieldErrors((prev) => ({ ...prev, phone: '' }));
+                    }}
+                    className="text-xs hover:underline cursor-pointer font-medium"
+                    style={{ background: 'none', border: 'none', color: 'var(--gym-accent)', padding: 0 }}
+                  >
+                    Change Number
+                  </button>
+                )}
+              </div>
               <div className="flex gap-2">
                 <div className="relative flex-1">
                   <span className="absolute left-3 top-1/2 -translate-y-1/2 pointer-events-none" style={{ color: 'var(--gym-muted)' }}>
@@ -579,11 +531,30 @@ export default function AddUser() {
                     className="gym-input pl-9"
                     placeholder="0771234567"
                     disabled={otpStep === 2}
-                    style={otpStep === 2 ? { opacity: 0.7 } : {}}
+                    style={fieldErrors.phone ? { borderColor: 'var(--gym-accent2)' } : (otpStep === 2 ? { opacity: 0.7 } : {})}
                   />
                 </div>
-                {otpStep !== 2 && (
-                  <button type="button" className="btn btn-secondary text-sm flex-shrink-0" onClick={otpStep === 0 ? sendOtp : verifyOtp} disabled={otpLoading || (otpStep === 0 && !form.phone)}>
+                {otpStep === 2 ? (
+                  <button
+                    type="button"
+                    className="btn btn-secondary text-sm flex-shrink-0"
+                    onClick={() => {
+                      setOtpStep(0);
+                      setOtpCode('');
+                      setSentOtp('');
+                      setOtpMsg('');
+                      setFieldErrors((prev) => ({ ...prev, phone: '' }));
+                    }}
+                  >
+                    Edit
+                  </button>
+                ) : (
+                  <button
+                    type="button"
+                    className="btn btn-secondary text-sm flex-shrink-0"
+                    onClick={otpStep === 0 ? sendOtp : verifyOtp}
+                    disabled={otpLoading || (otpStep === 0 && !form.phone)}
+                  >
                     {otpLoading ? '...' : otpStep === 0 ? 'Send OTP' : 'Verify'}
                   </button>
                 )}
