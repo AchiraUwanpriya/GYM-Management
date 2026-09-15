@@ -171,9 +171,9 @@ export default function HealthRecords() {
              </div>
           </div>
         </div>
-        <div className="modal-footer">
+        {/* <div className="modal-footer">
           <button className="btn btn-secondary" onClick={() => setSelectedRecord(null)}>Close</button>
-        </div>
+        </div> */}
       </Modal>
     </div>
   );

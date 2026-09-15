@@ -474,7 +474,7 @@ export default function Dashboard() {
       </div>
 
       {/* ── Members Grid ── */}
-      {members.length > 0 && (
+      {/* {members.length > 0 && (
         <div className="gym-card">
           <div className="flex items-center justify-between mb-4">
             <div className="gym-card-title mb-0">Members</div>
@@ -510,7 +510,7 @@ export default function Dashboard() {
             })}
           </div>
         </div>
-      )}
+      )} */}
 
       {/* ── Trainers Grid ── */}
       {trainers.length > 0 && (
