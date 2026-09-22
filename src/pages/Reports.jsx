@@ -96,6 +96,21 @@ const TABS = [
   { id: 'users',         label: '👤 System Users' },
 ];
 
+const TABS_WITH_DATE_FILTER = [
+  'members',
+  'payments',
+  'subscriptions',
+  'trainers',
+  'schedules',
+  'trainertimeslots',
+  'attendance',
+  'assignments',
+  'workouts',
+  'rfid',
+  'plans',
+  
+];
+
 const USER_STATUS_FILTERS = [
   { value: 'all',       label: 'All',       color: 'var(--gym-muted)' },
   { value: 'active',    label: 'Active',    color: 'var(--gym-success)' },
@@ -185,11 +200,11 @@ const TRAINER_TS_STATUS_FILTERS = [
 
 export default function Reports() {
   const dispatch = useDispatch();
-  const members       = useSelector((s) => s.members.data);
-  const trainers      = useSelector((s) => s.trainers.data);
-  const payments      = useSelector((s) => s.payments.data);
-  const subscriptions = useSelector((s) => s.subscriptions.data);
-  const schedules     = useSelector((s) => s.schedules.data);
+  const members       = useSelector((s) => s.members?.data || []);
+  const trainers      = useSelector((s) => s.trainers?.data || []);
+  const payments      = useSelector((s) => s.payments?.data || []);
+  const subscriptions = useSelector((s) => s.subscriptions?.data || []);
+  const schedules     = useSelector((s) => s.schedules?.data || []);
   const timeslots     = useSelector((s) => s.timeslots?.data || []);
   const trainerTimeslots = useSelector((s) => s.trainerTimeslots?.data || []);
   const exercises     = useSelector((s) => s.exercises?.data || []);
@@ -198,7 +213,7 @@ export default function Reports() {
   const workouts      = useSelector((s) => s.workouts?.data || []);
   const rfidTags      = useSelector((s) => s.rfidTags?.data || []);
   const plans         = useSelector((s) => s.plans?.data || []);
-  const users         = useSelector((s) => s.users.data);
+  const users         = useSelector((s) => s.users?.data || []);
   const adminId       = useSelector((s) => s.ui.currentUserId);
 
   const [activeTab,           setActiveTab]           = useState('overview');
@@ -251,8 +266,11 @@ export default function Reports() {
     dispatch(fetchUsers());
   }, [dispatch]);
 
-  // Enrich members and trainers with linked User row (email, phone, profile image, names)
-  const enrichedMembers = (members || []).map((m) => {
+  // Enrich members and trainers with linked User row (email, phone, profile image, names).
+  // FIX: Filter to only records with a valid memberId — the /Member/GetAllMember endpoint
+  // may return joined rows that include user-level data; without this guard the Members tab
+  // would display plain user rows that have no memberId at all.
+  const enrichedMembers = (members || []).filter((m) => !!m.memberId).map((m) => {
     const u = (users || []).find((x) => String(x.userId) === String(m.userId));
     return {
       ...m,
@@ -423,7 +441,7 @@ export default function Reports() {
 
   // ── FILTERED DATA ──────────────────────────────────────────
 
-  const filteredMembers = (enrichedMembers || members || []).filter((m) => {
+  const filteredMembers = enrichedMembers.filter((m) => {
     if (memSearch && !(m.firstName + ' ' + m.lastName).toLowerCase().includes(memSearch.toLowerCase()) && !(m.email || '').toLowerCase().includes(memSearch.toLowerCase())) return false;
     if (memStatusFilter !== 'all' && (m.status || 'inactive').toLowerCase() !== memStatusFilter) return false;
     if (dateFrom && m.joinDate && m.joinDate.substring(0, 10) < dateFrom) return false;
@@ -1089,11 +1107,22 @@ export default function Reports() {
           <div className="page-title">Reports</div>
           <div className="page-sub">Analytics and PDF exports for DTS GYM</div>
         </div>
-        <div className="flex gap-2 items-center">
-          <input className="gym-input" type="date" value={dateFrom} onChange={(e) => setDateFrom(e.target.value)} style={{ width: 140 }} />
-          <span style={{ color: 'var(--gym-muted)' }}>→</span>
-          <input className="gym-input" type="date" value={dateTo}   onChange={(e) => setDateTo(e.target.value)}   style={{ width: 140 }} />
-        </div>
+        {TABS_WITH_DATE_FILTER.includes(activeTab) && (
+          <div className="flex gap-2 items-center">
+            <input className="gym-input" type="date" value={dateFrom} onChange={(e) => setDateFrom(e.target.value)} style={{ width: 140 }} />
+            <span style={{ color: 'var(--gym-muted)' }}>→</span>
+            <input className="gym-input" type="date" value={dateTo}   onChange={(e) => setDateTo(e.target.value)}   style={{ width: 140 }} />
+            {(dateFrom || dateTo) && (
+              <button
+                className="btn btn-secondary text-xs px-2 py-1"
+                onClick={() => { setDateFrom(''); setDateTo(''); }}
+                title="Clear date filter"
+              >
+                ✕ Clear
+              </button>
+            )}
+          </div>
+        )}
       </div>
 
       {/* Tabs */}
@@ -1115,7 +1144,7 @@ export default function Reports() {
         <div className="space-y-6">
           <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
             <StatCard label="Total Revenue"    value={formatCurrency(totalRevenue)}  color="var(--gym-accent)" />
-            <StatCard label="Members"          value={members.length}                color="var(--gym-success)" />
+            <StatCard label="Members"          value={enrichedMembers.length}        color="var(--gym-success)" />
             <StatCard label="Active Subs"      value={activeSubs}                    color="var(--gym-accent3)" />
             <StatCard label="Avg Payment"      value={formatCurrency(avgPayment)}    color="var(--gym-warning)" />
             <StatCard label="Trainers"         value={trainers.length}               color="var(--gym-accent3)" />
@@ -1172,12 +1201,12 @@ export default function Reports() {
               <StatusPills filters={MEMBER_STATUS_FILTERS} active={memStatusFilter} onChange={setMemStatusFilter} />
             </>}
             right={<>
-              <CountTag shown={filteredMembers.length} total={members.length} />
+              <CountTag shown={filteredMembers.length} total={enrichedMembers.length} />
               <ExportBtn onClick={downloadMembersPdf} />
             </>}
           />
           <div className="card overflow-hidden">
-            <TableHeader title={memStatusFilter === 'all' ? 'All Members' : `${memStatusFilter.charAt(0).toUpperCase()+memStatusFilter.slice(1)} Members`} shown={filteredMembers.length} total={members.length} />
+            <TableHeader title={memStatusFilter === 'all' ? 'All Members' : `${memStatusFilter.charAt(0).toUpperCase()+memStatusFilter.slice(1)} Members`} shown={filteredMembers.length} total={enrichedMembers.length} />
             <table className="w-full text-sm">
               <thead style={{ background: 'var(--gym-surface2)' }}>
                 <tr>{['#', 'Name', 'Email', 'Phone', 'Blood', 'Joined', 'Status'].map((h) => (

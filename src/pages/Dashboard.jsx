@@ -168,9 +168,9 @@ function ParQDetailModal({ record, onClose }) {
           Submitted: {record.submitted_date?.substring(0, 10) || '—'} · Updated: {record.updated_date?.substring(0, 10) || '—'}
         </div>
       </div>
-      <div className="modal-footer">
+      {/* <div className="modal-footer">
         <button className="btn btn-secondary" onClick={onClose}>Close</button>
-      </div>
+      </div> */}
     </Modal>
   );
 }
