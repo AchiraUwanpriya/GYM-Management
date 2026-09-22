@@ -394,28 +394,6 @@ export default function Members() {
             </div>
           </div>
 
-          <div className="grid grid-cols-2 gap-4">
-            <FieldGroup label="Phone * (10 digits)">
-              <input className="gym-input" inputMode="numeric" maxLength={10} value={userForm.p_phone} onChange={handlePhoneChange} placeholder="0771234567" />
-              {addErrors.p_phone && <p className="text-xs mt-1" style={{ color:'var(--gym-accent2)' }}>{addErrors.p_phone}</p>}
-            </FieldGroup>
-            <FieldGroup label="Email *">
-              <input className="gym-input" type="email" value={userForm.p_email} onChange={handleEmailChange} />
-              {addErrors.p_email && <p className="text-xs mt-1" style={{ color:'var(--gym-accent2)' }}>{addErrors.p_email}</p>}
-            </FieldGroup>
-          </div>
-          <div className="grid grid-cols-2 gap-4">
-            <FieldGroup label="Password *"><input className="gym-input" type="password" value={userForm.p_password_hash} onChange={(e) => setUserForm(f => ({ ...f, p_password_hash: e.target.value }))} /></FieldGroup>
-            <FieldGroup label="Gender">
-              <select className="gym-input" value={userForm.p_gender} onChange={(e) => setUserForm(f => ({ ...f, p_gender: e.target.value }))}>
-                <option value="">— Not specified —</option>
-                <option value="male">Male</option>
-                <option value="female">Female</option>
-                <option value="other">Other</option>
-              </select>
-            </FieldGroup>
-          </div>
-
           <div className="text-xs font-semibold tracking-widest mt-2" style={{ color:'var(--gym-muted)' }}>MEMBER DETAILS</div>
           <div className="grid grid-cols-2 gap-4">
             <FieldGroup label="First Name *"><input className="gym-input" value={memForm.p_first_name} onChange={(e) => setMemForm(f => ({ ...f, p_first_name: e.target.value }))} /></FieldGroup>
@@ -438,6 +416,30 @@ export default function Members() {
             <FieldGroup label="Weight (kg)"><input className="gym-input" type="number" value={memForm.p_weight} onChange={(e) => setMemForm(f => ({ ...f, p_weight: e.target.value }))} /></FieldGroup>
             <FieldGroup label="Height (cm)"><input className="gym-input" type="number" value={memForm.p_height} onChange={(e) => setMemForm(f => ({ ...f, p_height: e.target.value }))} /></FieldGroup>
           </div>
+
+          <div className="grid grid-cols-2 gap-4">
+            <FieldGroup label="Phone * (10 digits)">
+              <input className="gym-input" inputMode="numeric" maxLength={10} value={userForm.p_phone} onChange={handlePhoneChange} placeholder="0771234567" />
+              {addErrors.p_phone && <p className="text-xs mt-1" style={{ color:'var(--gym-accent2)' }}>{addErrors.p_phone}</p>}
+            </FieldGroup>
+            <FieldGroup label="Email *">
+              <input className="gym-input" type="email" value={userForm.p_email} onChange={handleEmailChange} />
+              {addErrors.p_email && <p className="text-xs mt-1" style={{ color:'var(--gym-accent2)' }}>{addErrors.p_email}</p>}
+            </FieldGroup>
+          </div>
+          <div className="grid grid-cols-2 gap-4">
+            <FieldGroup label="Password *"><input className="gym-input" type="password" value={userForm.p_password_hash} onChange={(e) => setUserForm(f => ({ ...f, p_password_hash: e.target.value }))} /></FieldGroup>
+            <FieldGroup label="Gender">
+              <select className="gym-input" value={userForm.p_gender} onChange={(e) => setUserForm(f => ({ ...f, p_gender: e.target.value }))}>
+                <option value="">— Not specified —</option>
+                <option value="male">Male</option>
+                <option value="female">Female</option>
+                <option value="other">Other</option>
+              </select>
+            </FieldGroup>
+          </div>
+
+          
           <FieldGroup label="Fitness Goal">
             <textarea className="gym-input resize-none" rows={2} value={memForm.p_fitness_goal} onChange={(e) => setMemForm(f => ({ ...f, p_fitness_goal: e.target.value }))} placeholder="e.g. Lose weight, Build muscle..." />
           </FieldGroup>

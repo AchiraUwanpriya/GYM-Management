@@ -14,7 +14,7 @@ const NAV_ADMIN = [
     { to: '/reports',   label: 'Reports',     icon: <ChartIcon /> },
   ]},
   { section: 'Management', items: [
-    { to: '/users',      label: 'Staff / Users', icon: <UserIcon /> },
+    { to: '/users',      label: 'Users', icon: <UserIcon /> },
     { to: '/members',    label: 'Members',       icon: <MemberIcon /> },
     { to: '/trainers',   label: 'Trainers',      icon: <TrainerIcon /> },
     { to: '/health',     label: 'Health Records',icon: <AttendIcon /> },
