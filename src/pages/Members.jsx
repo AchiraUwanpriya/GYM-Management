@@ -53,6 +53,7 @@ export default function Members() {
   const [editForm,   setEditForm]   = useState({});
   const [saving,     setSaving]     = useState(false);
   const [search,     setSearch]     = useState('');
+  const [statusTab,  setStatusTab]  = useState('approved');
   const [viewMode,   setViewMode]   = useState('table');
   const [zoomImage, setZoomImage] = useState(null);
   const [addErrors, setAddErrors] = useState({});
@@ -214,12 +215,43 @@ export default function Members() {
     };
   });
 
-  const filtered = search
-    ? enriched.filter((m) =>
-        (m.firstName + ' ' + m.lastName).toLowerCase().includes(search.toLowerCase()) ||
-        (m.email || '').toLowerCase().includes(search.toLowerCase()) ||
-        String(m.memberId).includes(search))
-    : enriched;
+  const statusCounts = {
+    all: enriched.length,
+    approved: enriched.filter(m => {
+      const s = (m.status || 'pending').toLowerCase();
+      return s === 'approved' || s === 'active';
+    }).length,
+    pending: enriched.filter(m => {
+      const s = (m.status || 'pending').toLowerCase();
+      return s === 'pending';
+    }).length,
+    rejected: enriched.filter(m => {
+      const s = (m.status || 'pending').toLowerCase();
+      return s === 'rejected';
+    }).length,
+    inactive: enriched.filter(m => {
+      const s = (m.status || 'pending').toLowerCase();
+      return s === 'inactive' || s === 'suspended';
+    }).length,
+  };
+
+  const filtered = enriched.filter((m) => {
+    const s = (m.status || 'pending').toLowerCase();
+    if (statusTab === 'approved' && !(s === 'approved' || s === 'active')) return false;
+    if (statusTab === 'pending' && s !== 'pending') return false;
+    if (statusTab === 'rejected' && s !== 'rejected') return false;
+    if (statusTab === 'inactive' && !(s === 'inactive' || s === 'suspended')) return false;
+
+    if (search) {
+      const q = search.toLowerCase();
+      const nameMatch = (m.firstName + ' ' + m.lastName).toLowerCase().includes(q);
+      const emailMatch = (m.email || '').toLowerCase().includes(q);
+      const phoneMatch = (m.phone || '').toLowerCase().includes(q);
+      const idMatch = String(m.memberId).includes(q);
+      return nameMatch || emailMatch || phoneMatch || idMatch;
+    }
+    return true;
+  });
 
   const statusVariant = (s = '') => {
     const l = (s || '').toLowerCase();
@@ -318,6 +350,47 @@ export default function Members() {
           </button>
           {isAdmin && <button className="btn btn-primary" onClick={() => setShowAdd(true)}>+ Add Member</button>}
         </div>
+      </div>
+
+      {/* Status Filter Tabs */}
+      <div className="flex items-center gap-2 border-b pb-3 overflow-x-auto" style={{ borderColor: 'var(--gym-surface2)' }}>
+        {[
+          // { id: 'all', label: 'All Members', icon: '👥', color: 'var(--gym-accent)' },
+          { id: 'approved', label: 'Approved', icon: '✅', color: 'var(--gym-success)' },
+          { id: 'pending', label: 'Pending', icon: '⏳', color: '#f59e0b' },
+          { id: 'rejected', label: 'Rejected', icon: '✕', color: 'var(--gym-accent2)' },
+          { id: 'inactive', label: 'Inactive', icon: '🚫', color: 'var(--gym-muted)' },
+        ].map(({ id, label, icon, color }) => {
+          const isActive = statusTab === id;
+          const count = statusCounts[id];
+          return (
+            <button
+              key={id}
+              onClick={() => setStatusTab(id)}
+              className="flex items-center gap-2 px-3.5 py-2 rounded-xl text-xs font-semibold transition-all duration-200"
+              style={{
+                background: isActive ? 'var(--gym-surface2)' : 'transparent',
+                color: isActive ? 'var(--gym-text)' : 'var(--gym-muted)',
+                border: isActive ? `1px solid ${color}55` : '1px solid transparent',
+                boxShadow: isActive ? `0 2px 8px ${color}15` : 'none',
+                cursor: 'pointer',
+                whiteSpace: 'nowrap',
+              }}
+            >
+              <span>{icon}</span>
+              <span>{label}</span>
+              <span
+                className="px-2 py-0.5 rounded-full text-[11px] font-bold"
+                style={{
+                  background: isActive ? `${color}22` : 'var(--gym-surface2)',
+                  color: isActive ? color : 'var(--gym-muted)',
+                }}
+              >
+                {count}
+              </span>
+            </button>
+          );
+        })}
       </div>
 
       {viewMode === 'table' ? (
