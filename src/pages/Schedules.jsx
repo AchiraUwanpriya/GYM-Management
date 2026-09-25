@@ -236,7 +236,7 @@ export default function Schedules() {
         : `#${row.trainerId}`;
       return <span style={{ color: 'var(--gym-accent3)' }}>{v || fallback}</span>;
     }},
-    { key: 'scheduleDate', label: 'Date',    render: (v) => formatDate(v) },
+    { key: 'scheduleDate', label: 'Date',    render: (v) => {const date = new Date(v);return date.toLocaleDateString('en-GB')}},
     { key: 'starttime',    label: 'Time',    render: (v, row) => (
       <span className="font-mono text-xs">{
         (() => {
